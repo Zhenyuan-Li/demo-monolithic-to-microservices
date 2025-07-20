@@ -88,19 +88,25 @@ Rel(api_gateway, payment_service, "Routes requests", "HTTPS")
 Rel(api_gateway, delivery_service, "Routes requests", "HTTPS")
 Rel(api_gateway, user_service, "Routes requests", "HTTPS")
 
+' Service to SQL db
 Rel(order_service, order_db, "Reads/Writes", "SQL")
-Rel(order_service, order_queue, "Publishes order events", "SQS")
-Rel(order_service, cache_layer, "Cache reads/writes", "DynamoDB API")
-
 Rel(store_service, store_db, "Reads/Writes", "SQL")
-Rel(store_service, cache_layer,  "Cache reads/writes", "DynamoDB API")
-
 Rel(user_service, user_db, "Reads/Writes", "SQL")
 
+' Service to caching
+Rel(order_service, cache_layer, "Cache reads/writes", "DynamoDB API")
+Rel(store_service, cache_layer, "Cache reads/writes", "DynamoDB API")
+Rel(user_service, cache_layer, "Cache user sessions", "DynamoDB API")
+Rel(payment_service, cache_layer, "Cache payment tokens", "DynamoDB API")
+
+' Event-driven for async process
+Rel(order_service, order_queue, "Publishes order events", "SQS")
 Rel(notification_service, order_queue, "Consumes order events", "SQS")
 Rel(notification_service, notification_topic, "Publishes notifications", "SNS")
 
+' External integrations
 Rel(payment_service, payment_gateway, "Processes payments", "HTTPS/REST")
-
+Rel(store_service, mapping_service, "Gets directions, store locations", "HTTPS/REST")
 Rel(delivery_service, delivery_partners, "Books delivery", "HTTPS/REST + Webhooks")
+
 @enduml
