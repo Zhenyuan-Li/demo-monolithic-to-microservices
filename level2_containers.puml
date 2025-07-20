@@ -1,0 +1,106 @@
+@startuml C4_Container
+!define DEVICONS https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/master/devicons
+!define FONTAWESOME https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/master/font-awesome-5
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+!include DEVICONS/react.puml
+!include FONTAWESOME/mobile_alt.puml
+!include FONTAWESOME/server.puml
+!include FONTAWESOME/database.puml
+!include FONTAWESOME/cloud.puml
+!include FONTAWESOME/credit_card.puml
+!include FONTAWESOME/map_marked_alt.puml
+!include FONTAWESOME/truck.puml
+
+LAYOUT_WITH_LEGEND()
+LAYOUT_LEFT_RIGHT()
+
+!define PERSON_BG_COLOR #1f4e79
+!define PERSON_EXT_BG_COLOR #666666
+!define SYSTEM_BG_COLOR #438dd5
+!define SYSTEM_EXT_BG_COLOR #999999
+!define CONTAINER_BG_COLOR #85bbf0
+!define CONTAINER_DB_BG_COLOR #23a2d9
+
+AddPersonTag("person", $bgColor=PERSON_BG_COLOR, $fontColor=#ffffff)
+AddPersonTag("external_person", $bgColor=PERSON_EXT_BG_COLOR, $fontColor=#ffffff)
+AddSystemTag("system", $bgColor=SYSTEM_BG_COLOR, $fontColor=#ffffff)
+AddSystemTag("external_system", $bgColor=SYSTEM_EXT_BG_COLOR, $fontColor=#ffffff)
+AddContainerTag("container", $bgColor=CONTAINER_BG_COLOR, $fontColor=#ffffff)
+AddContainerTag("database", $bgColor=CONTAINER_DB_BG_COLOR, $fontColor=#ffffff)
+
+title Level 2 - Container Diagram 
+
+Person_Ext(customer, "Customer", "Places orders via web/mobile", $tags="person")
+Person_Ext(store_manager, "Store Manager", "Manages store operations", $tags="person")
+
+System_Boundary(aws_cloud, "AWS Cloud") {
+    Container(cloudfront, "CloudFront CDN", "AWS CloudFront", "Global content delivery and caching", $sprite="cloud", $tags="container")
+    Container(api_gateway, "API Gateway", "AWS API Gateway", "Single entry point for all API requests, handles auth & rate limiting", $sprite="server", $tags="container")
+    
+    Container(web_app, "Customer Web App", "React, S3 + CloudFront", "Responsive web interface for ordering sandwiches", $sprite="react", $tags="container")
+    Container(mobile_app, "Mobile App", "React Native", "iOS/Android app for customers", $sprite="mobile_alt", $tags="container")
+    Container(admin_portal, "Admin Portal", "React, S3 + CloudFront", "Web portal for store managers", $sprite="react", $tags="container")
+    
+    Container_Boundary(microservices, "Microservices") {
+        Container(order_service, "Order Service", "Node.js, ECS Fargate", "Handles order placement, tracking, and fulfillment", $sprite="server", $tags="container")
+        Container(store_service, "Store Service", "Node.js, ECS Fargate", "Manages store information, hours, and availability", $sprite="server", $tags="container")
+        Container(payment_service, "Payment Service", "Node.js, ECS Fargate", "Processes payments and handles refunds", $sprite="server", $tags="container")
+        
+        Container(delivery_service, "Delivery Service", "Node.js, ECS Fargate", "Integrates with delivery partners", $sprite="server", $tags="container")
+        Container(user_service, "User Service", "Node.js, ECS Fargate", "Manages customer and staff authentication", $sprite="server", $tags="container")
+        Container(notification_service, "Notification Service", "Node.js, ECS Fargate", "Sends order updates via SMS/email/push", $sprite="server", $tags="container")
+    }
+    
+    Container_Boundary(messaging, "Event Messaging") {
+        Container(order_queue, "Order Events", "Amazon SQS", "Handles order state changes", $sprite="server", $tags="container")
+        Container(notification_topic, "Notifications", "Amazon SNS", "Pub/sub for notifications", $sprite="server", $tags="container")
+    }
+    
+    Container_Boundary(data_layer, "Data Layer") {
+        ContainerDb(order_db, "Order Database", "Amazon RDS PostgreSQL", "Stores order history and transaction data", $sprite="database", $tags="database")
+        ContainerDb(store_db, "Store Database", "Amazon RDS PostgreSQL", "Stores store info, menus, and franchise data", $sprite="database", $tags="database")
+        ContainerDb(user_db, "User Database", "Amazon RDS PostgreSQL", "Stores customer and staff profiles", $sprite="database", $tags="database")
+        ContainerDb(cache_layer, "Cache Layer", "Amazon DynamoDB", "High-speed caching for frequently accessed data", $sprite="database", $tags="database")
+    }
+}
+
+System_Ext(payment_gateway, "Payment Processors", "Stripe, PayPal, Apple/Google Pay", $sprite="credit_card", $tags="external_system")
+System_Ext(mapping_service, "Google Maps API", "Store locations and directions", $sprite="map_marked_alt", $tags="external_system")
+System_Ext(delivery_partners, "Delivery Partners", "Uber Eats or DoorDash APIs", $sprite="truck", $tags="external_system")
+
+payment_gateway -[hidden]right- mapping_service
+mapping_service -[hidden]down- delivery_partners
+
+Rel(customer, cloudfront, "Uses", "HTTPS")
+Rel(store_manager, cloudfront, "Uses", "HTTPS")
+
+Rel(cloudfront, web_app, "Serves", "HTTPS")
+Rel(cloudfront, mobile_app, "API calls", "HTTPS")
+Rel(cloudfront, admin_portal, "Serves", "HTTPS")
+
+Rel(web_app, api_gateway, "API requests", "HTTPS/REST")
+Rel(mobile_app, api_gateway, "API requests", "HTTPS/REST")
+Rel(admin_portal, api_gateway, "API requests", "HTTPS/REST")
+
+Rel(api_gateway, order_service, "Routes requests", "HTTPS")
+Rel(api_gateway, store_service, "Routes requests", "HTTPS")
+Rel(api_gateway, payment_service, "Routes requests", "HTTPS")
+Rel(api_gateway, delivery_service, "Routes requests", "HTTPS")
+Rel(api_gateway, user_service, "Routes requests", "HTTPS")
+
+Rel(order_service, order_db, "Reads/Writes", "SQL")
+Rel(order_service, order_queue, "Publishes order events", "SQS")
+Rel(order_service, cache_layer, "Cache reads/writes", "DynamoDB API")
+
+Rel(store_service, store_db, "Reads/Writes", "SQL")
+Rel(store_service, cache_layer,  "Cache reads/writes", "DynamoDB API")
+
+Rel(user_service, user_db, "Reads/Writes", "SQL")
+
+Rel(notification_service, order_queue, "Consumes order events", "SQS")
+Rel(notification_service, notification_topic, "Publishes notifications", "SNS")
+
+Rel(payment_service, payment_gateway, "Processes payments", "HTTPS/REST")
+
+Rel(delivery_service, delivery_partners, "Books delivery", "HTTPS/REST + Webhooks")
+@enduml
