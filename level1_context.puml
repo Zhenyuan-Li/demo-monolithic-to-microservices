@@ -1,0 +1,45 @@
+@startuml C4_Context
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+!define DEVICONS https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/master/devicons
+!define FONTAWESOME https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/master/font-awesome-5
+!include DEVICONS/react.puml
+!include FONTAWESOME/mobile_alt.puml
+!include FONTAWESOME/users.puml
+!include FONTAWESOME/map_marked_alt.puml
+!include FONTAWESOME/truck.puml
+!include FONTAWESOME/credit_card.puml
+
+LAYOUT_WITH_LEGEND()
+
+!define PERSON_BG_COLOR #1f4e79
+!define PERSON_EXT_BG_COLOR #666666
+!define SYSTEM_BG_COLOR #438dd5
+!define SYSTEM_EXT_BG_COLOR #999999
+
+AddPersonTag("person", $bgColor=PERSON_BG_COLOR, $fontColor=#ffffff)
+AddPersonTag("external_person", $bgColor=PERSON_EXT_BG_COLOR, $fontColor=#ffffff)
+AddSystemTag("system", $bgColor=SYSTEM_BG_COLOR, $fontColor=#ffffff)
+AddSystemTag("external_system", $bgColor=SYSTEM_EXT_BG_COLOR, $fontColor=#ffffff)
+
+title Level 1 - System Context Diagram 
+
+Person_Ext(customer, "Customer", "Orders sandwiches", $sprite="users", $tags="external_person")
+Person(store_manager, "Store Manager", "Manages store operations", $sprite="users", $tags="person")
+Person(national_manager, "National Manager", "Oversees franchise network", $sprite="users", $tags="person")
+
+System(sandwich_system, "Sandwich Ordering Platform", "Enables online ordering, store management, and delivery coordination for franchise sandwich shops", $tags="system")
+
+System_Ext(payment_gateway, "Payment Gateway", "Processes payments", $sprite="credit_card", $tags="external_system")
+System_Ext(mapping_service, "Google Maps API", "Location and routing services", $sprite="map_marked_alt", $tags="external_system")
+System_Ext(delivery_services, "Delivery Partners", "Third-party delivery services", $sprite="truck", $tags="external_system")
+
+Rel(customer, sandwich_system, "Places orders, tracks delivery", "HTTPS/Web")
+Rel(store_manager, sandwich_system, "Manages store settings, views orders", "HTTPS/Web")
+Rel(national_manager, sandwich_system, "Views analytics, manages franchise", "HTTPS/Web")
+
+Rel(sandwich_system, payment_gateway, "Processes payments", "HTTPS/REST")
+Rel(sandwich_system, mapping_service, "Gets directions, store locations", "HTTPS/REST")
+Rel(sandwich_system, delivery_services, "Books delivery, tracks status", "HTTPS/REST + Webhooks")
+
+@enduml
