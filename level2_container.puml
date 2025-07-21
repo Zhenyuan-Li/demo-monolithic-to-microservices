@@ -94,8 +94,8 @@ Rel(store_service, store_db, "Reads/Writes", "SQL")
 Rel(user_service, user_db, "Reads/Writes", "SQL")
 
 ' Service to caching
-Rel(order_service, cache_layer, "Cache reads/writes", "DynamoDB API")
-Rel(store_service, cache_layer, "Cache reads/writes", "DynamoDB API")
+Rel(order_service, cache_layer, "Cache order items", "DynamoDB API")
+Rel(store_service, cache_layer, "Cache menu", "DynamoDB API")
 Rel(user_service, cache_layer, "Cache user sessions", "DynamoDB API")
 Rel(payment_service, cache_layer, "Cache payment tokens", "DynamoDB API")
 
@@ -108,5 +108,4 @@ Rel(notification_service, notification_topic, "Publishes notifications", "SNS")
 Rel(payment_service, payment_gateway, "Processes payments", "HTTPS/REST")
 Rel(store_service, mapping_service, "Gets directions, store locations", "HTTPS/REST")
 Rel(delivery_service, delivery_partners, "Books delivery", "HTTPS/REST + Webhooks")
-
 @enduml
