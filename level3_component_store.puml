@@ -1,0 +1,101 @@
+@startuml C4_StoreComponents
+!define DEVICONS https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/master/devicons
+!define FONTAWESOME https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/master/font-awesome-5
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+!include DEVICONS/react.puml
+!include FONTAWESOME/server.puml
+!include FONTAWESOME/database.puml
+!include FONTAWESOME/shield_alt.puml
+!include FONTAWESOME/check_circle.puml
+!include FONTAWESOME/cogs.puml
+!include FONTAWESOME/utensils.puml
+!include FONTAWESOME/building.puml
+!include FONTAWESOME/map_marker_alt.puml
+!include FONTAWESOME/clock.puml
+!include FONTAWESOME/users.puml
+!include FONTAWESOME/map_marked_alt.puml
+!include FONTAWESOME/cloud.puml
+!define CONTAINER_BG_COLOR #85bbf0
+!define COMPONENT_FONT_COLOR #ffffff
+
+LAYOUT_WITH_LEGEND()
+AddComponentTag("component", $bgColor=CONTAINER_BG_COLOR, $fontColor=COMPONENT_FONT_COLOR)
+
+title level 3 - Component Diagram (Store Service)
+
+Container_Ext(api_gateway, "API Gateway", "AWS API Gateway", "Routes incoming requests", $sprite="server")
+Container_Ext(admin_portal, "Admin Portal", "React.js", $sprite="react")
+Container_Ext(order_service, "Order Service", "Microservice", $sprite="server")
+
+System_Boundary(store_service, "Store Service Container") {
+    Component(auth_middleware, "Authentication Middleware", "JWT Validation", $sprite="shield_alt", $tags="component")
+    Component(franchise_middleware, "Franchise Authorization", "Access Control", "permission check for each manager", $sprite="building", $tags="component")
+    Component(validation_middleware, "Validation Middleware", "validate request payload", $sprite="check_circle", $tags="component")
+    Component(store_controller, "Store Controller", "Router", "Handles HTTP requests for store operations", $sprite="server", $tags="component")
+    Component(menu_controller, "Menu Controller", "Router", "Handles menu management operations", $sprite="utensils", $tags="component")
+    
+    Container_Boundary(business_logic, "Business Logic Layer") {
+        Component(store_manager, "Store Manager", "Business Logic", $sprite="cogs", $tags="component")
+        Component(menu_manager, "Menu Manager", "Business Logic", $sprite="utensils", $tags="component")
+        Component(franchise_manager, "Franchise Manager", "Business Logic", $sprite="building", $tags="component")
+        Component(location_service, "Location Service", "Business Logic", $sprite="map_marker_alt", $tags="component")
+        Component(availability_engine, "Availability Engine", "Business Logic", $sprite="clock", $tags="component")
+    }
+    
+    Container_Boundary(data_access, "Data Access Layer") {
+        Component(store_repository, "Store Repository", "Data Access", $sprite="database", $tags="component")
+        Component(menu_repository, "Menu Repository", "Data Access", $sprite="database", $tags="component")
+        Component(franchise_repository, "Franchise Repository", "Data Access", $sprite="database", $tags="component")
+        Component(store_cache, "Store Cache Manager", "Cache Access", "Manages cached store and menu data", $sprite="database", $tags="component")
+    }
+    
+    Container_Boundary(external_adapters, "External Service Adapters") {
+        Component(maps_adapter, "Google Maps Adapter", "HTTP Client", $sprite="map_marked_alt", $tags="component")
+        Component(user_adapter, "User Service Adapter", "HTTP Client", "store permission", $sprite="users", $tags="component")
+    }
+}
+
+ContainerDb_Ext(store_db, "Store Database", "PostgreSQL", $sprite="database")
+ContainerDb_Ext(cache_layer, "Cache Layer", "DynamoDB", $sprite="database")
+
+System_Ext(google_maps, "Google Maps API", $sprite="map_marked_alt")
+Container_Ext(user_service, "User Service", "Microservice", $sprite="users")
+
+' Above: blocks
+' ----- DIVIDER -----
+' Below: relationships
+
+Rel(api_gateway, auth_middleware, "routes store/menu requests", "HTTPS/JSON")
+Rel(admin_portal, api_gateway, "manage stores, update menus", "HTTPS")
+Rel(order_service, api_gateway, "validate items, check availability", "HTTPS")
+
+Rel(auth_middleware, franchise_middleware, "Authenticated requests", "HTTP")
+Rel(franchise_middleware, validation_middleware, "Authorized requests", "HTTP")
+Rel(validation_middleware, store_controller, "Store operations", "HTTP")
+Rel(validation_middleware, menu_controller, "Menu operations", "HTTP")
+
+' within business logic
+Rel(store_controller, store_manager, "")
+Rel(menu_controller, menu_manager, "")
+Rel(store_manager, franchise_manager, "apply franchise rules")
+Rel(store_manager, location_service, "manage store locations")
+Rel(menu_manager, availability_engine, "check item availability")
+' business logic to external adaptor
+Rel(location_service, maps_adapter, "Get directions, validate addresses")
+Rel(franchise_middleware, user_adapter, "Validate franchise permissions")
+' adaptor to external service or 3rd API
+Rel(maps_adapter, google_maps, "HTTP calls", "REST API")
+Rel(user_adapter, user_service, "HTTP calls", "REST API")
+' within data access layer
+Rel(store_manager, store_repository, "store CRUD")
+Rel(menu_manager, menu_repository, "menu CRUD")
+Rel(franchise_manager, franchise_repository, "franchise CRUD")
+Rel(store_manager, store_cache, "cache store data")
+Rel(menu_manager, store_cache, "cache menu data")
+' access layer to different type of DB
+Rel(store_repository, store_db, "SQL queries", "PostgreSQL")
+Rel(menu_repository, store_db, "SQL queries", "PostgreSQL")
+Rel(franchise_repository, store_db, "SQL queries", "PostgreSQL")
+Rel(store_cache, cache_layer, "Cache operations", "DynamoDB API")
+
+@enduml

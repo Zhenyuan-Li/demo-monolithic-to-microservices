@@ -1,0 +1,98 @@
+@startuml C4_Components
+!define DEVICONS https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/master/devicons
+!define FONTAWESOME https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/master/font-awesome-5
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+!include DEVICONS/react.puml
+!include FONTAWESOME/mobile_alt.puml
+!include FONTAWESOME/server.puml
+!include FONTAWESOME/database.puml
+!include FONTAWESOME/shield_alt.puml
+!include FONTAWESOME/check_circle.puml
+!include FONTAWESOME/cogs.puml
+!include FONTAWESOME/calculator.puml
+!include FONTAWESOME/box.puml
+!include FONTAWESOME/cloud.puml
+!include FONTAWESOME/exchange_alt.puml
+!include FONTAWESOME/credit_card.puml
+!include FONTAWESOME/truck.puml
+!define CONTAINER_BG_COLOR #85bbf0
+!define COMPONENT_FONT_COLOR #ffffff
+
+LAYOUT_WITH_LEGEND()
+AddComponentTag("component", $bgColor=CONTAINER_BG_COLOR, $fontColor=COMPONENT_FONT_COLOR)
+
+title level 3 - Component Diagram (Order Service)
+
+Container_Ext(api_gateway, "API Gateway", "AWS API Gateway", "Routes incoming requests", $sprite="server")
+Container_Ext(web_app, "Customer Web App", "React.js", $sprite="react")
+Container_Ext(mobile_app, "Mobile App", "React Native", $sprite="mobile_alt")
+
+System_Boundary(order_service, "Order Service Container") {
+    Component(auth_middleware, "Authentication Middleware", "JWT Validation", $sprite="shield_alt", $tags="component")
+    Component(validation_middleware, "Validation Middleware", "validates request payloads", $sprite="check_circle", $tags="component")
+    Component(order_controller, "Order Controller", "Router", "Handles HTTP requests for order operations", $sprite="server", $tags="component")
+    
+    Container_Boundary(business_logic, "Business Logic Layer") {
+        Component(order_manager, "Order Manager", "Business Logic", $sprite="cogs", $tags="component")
+        Component(pricing_engine, "Pricing Engine", "Business Logic", $sprite="calculator", $tags="component")
+        Component(inventory_checker, "Inventory Checker", "Business Logic", $sprite="box", $tags="component")
+        Component(order_validator, "Order Validator", "Business Logic", $sprite="check_circle", $tags="component")
+    }
+    
+    Container_Boundary(data_access, "Data Access Layer") {
+        Component(order_repository, "Order Repository", "Data Access", "Handles order CRUD operations", $sprite="database", $tags="component")
+        Component(order_cache, "Order Cache Manager", "Cache Access", "Manages cached order data", $sprite="database", $tags="component")
+        Component(event_publisher, "Event Publisher", "Messaging", "Publishes order events to SQS", $sprite="exchange_alt", $tags="component")
+    }
+    
+    Container_Boundary(external_adapters, "External Service Adapters") {
+        Component(store_adapter, "Store Service Adapter", "HTTP Client", $sprite="server", $tags="component")
+        Component(payment_adapter, "Payment Service Adapter", "HTTP Client", $sprite="credit_card", $tags="component")
+        Component(delivery_adapter, "Delivery Service Adapter", "HTTP Client", $sprite="truck", $tags="component")
+    }
+}
+
+ContainerDb_Ext(order_db, "Order Database", "PostgreSQL", $sprite="database")
+ContainerDb_Ext(cache_layer, "Cache Layer", "DynamoDB", $sprite="database")
+Container_Ext(order_queue, "Order Events Queue", "AWS SQS", $sprite="cloud")
+
+Container_Ext(store_service, "Store Service", "Microservice", $sprite="server")
+Container_Ext(payment_service, "Payment Service", "Microservice", $sprite="credit_card")
+Container_Ext(delivery_service, "Delivery Service", "Microservice", $sprite="truck")
+
+' Above: blocks
+' ----- DIVIDER -----
+' Below: relationships
+
+Rel(web_app, api_gateway, "place order, track status", "HTTPS")
+Rel(mobile_app, api_gateway, "place order, track status", "HTTPS")
+Rel(api_gateway, auth_middleware, "routes order requests", "HTTPS/JSON")
+
+Rel(auth_middleware, validation_middleware, "authenticated requests", "HTTP")
+Rel(validation_middleware, order_controller, "validated requests", "HTTP")
+Rel(order_controller, order_manager, "")
+
+' within business logic
+Rel(order_manager, pricing_engine, "calculate related price")
+Rel(order_manager, inventory_checker, "check availability")
+Rel(order_manager, order_validator, "check order rules")
+' business logic to external adaptor
+Rel(inventory_checker, store_adapter, "Check store inventory")
+Rel(order_manager, payment_adapter, "Process payment")
+Rel(order_manager, delivery_adapter, "book delivery")
+' external adaptor to external service
+Rel(store_adapter, store_service, "HTTP calls", "REST API")
+Rel(payment_adapter, payment_service, "HTTP calls", "REST API")
+Rel(delivery_adapter, delivery_service, "HTTP calls", "REST API")
+' within data access layer
+Rel(order_manager, order_repository, "CRUD")
+Rel(order_manager, order_cache, "Cache")
+Rel(order_manager, event_publisher, "Publish events")
+' access layer to DB or queue
+Rel(order_repository, order_db, "SQL queries", "PostgreSQL")
+Rel(order_cache, cache_layer, "Cache ", "DynamoDB API")
+Rel(event_publisher, order_queue, "Publish events", "SQS")
+
+
+
+@enduml
